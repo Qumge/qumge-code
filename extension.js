@@ -5,6 +5,7 @@ import { formatBalance, formatModels } from "./lib/format.mjs";
 import { codingModels } from "./lib/models.mjs";
 import { loadCatalog } from "./lib/credentials.mjs";
 import { qumgeFetch } from "./lib/transport.mjs";
+import { installGuard } from "./lib/guard.mjs";
 
 const DEFAULT_BASE = "https://qumge.com";
 
@@ -31,6 +32,9 @@ function sessionClient(base) {
 }
 
 export default function (pi) {
+  // Pi runs every tool call without asking; we ask before the irreversible few.
+  installGuard(pi);
+
   // spawn stringifies an undefined env value, so a saved credential without an
   // api_base reaches us as the literal string "undefined" — a truthy base URL
   // that would send every request to undefined/v1.

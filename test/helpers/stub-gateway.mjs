@@ -57,6 +57,9 @@ export async function startStubGateway({
         return send(res, balanceReply);
       }
       if (req.method === "POST" && req.url.startsWith("/v1/chat/completions")) {
+        // A list plays one reply per call (the last one repeats): a tool call,
+        // then the answer after the tool result.
+        if (Array.isArray(chatReply)) return send(res, chatReply.length > 1 ? chatReply.shift() : chatReply[0]);
         return send(res, chatReply);
       }
       send(res, { status: 404, body: { error: { message: "not found" } } });

@@ -5,11 +5,14 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 function fakePi() {
-  const calls = { providers: [], commands: [] };
+  const calls = { providers: [], commands: [], handlers: {}, flags: [] };
   return {
     calls,
     registerProvider: (name, config) => calls.providers.push({ name, config }),
-    registerCommand: (name, options) => calls.commands.push({ name, options })
+    registerCommand: (name, options) => calls.commands.push({ name, options }),
+    registerFlag: (name) => calls.flags.push(name),
+    getFlag: () => undefined,
+    on: (event, handler) => (calls.handlers[event] ||= []).push(handler)
   };
 }
 
@@ -129,4 +132,11 @@ test("prefers the catalog cached by qumge login over the bundled one", () => {
     if (previous === undefined) delete process.env.QMG_HOME;
     else process.env.QMG_HOME = previous;
   }
+});
+
+test("asks before destructive tool calls", () => {
+  const pi = fakePi();
+  extension(pi);
+  assert.equal(pi.calls.handlers.tool_call?.length, 1);
+  assert.deepEqual(pi.calls.flags, ["yolo"]);
 });

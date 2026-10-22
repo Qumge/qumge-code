@@ -24,6 +24,7 @@ qmg is an alias for qumge — both run this same command.
 Everything else is passed to the agent, e.g.:
   qumge -p "fix the failing test"
   qumge --model deepseek/deepseek-chat
+  qumge --yolo        do not ask before destructive commands or secrets files
 `;
 
 const argv = process.argv.slice(2);

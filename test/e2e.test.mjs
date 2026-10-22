@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -188,3 +188,117 @@ test("a 403 HTML page on the chat call becomes an actionable error", async () =>
     await stub.close();
   }
 });
+
+function sseChunk(delta, finish = null) {
+  return `data: ${JSON.stringify({ id: "c", object: "chat.completion.chunk", created: 0, model: "test/model",
+    choices: [{ index: 0, delta, finish_reason: finish }] })}\n\n`;
+}
+
+// The model asks for `rm -rf victim`, then says done once it sees the result.
+function deleteThenAnswer() {
+  const toolCall = sseChunk({ role: "assistant", tool_calls: [{ index: 0, id: "call_1", type: "function",
+    function: { name: "bash", arguments: JSON.stringify({ command: "rm -rf victim" }) } }] }) +
+    sseChunk({}, "tool_calls") + "data: [DONE]\n\n";
+  const answer = sseChunk({ role: "assistant", content: "done" }) + sseChunk({}, "stop") + "data: [DONE]\n\n";
+  return [{ stream: true, body: toolCall }, { stream: true, body: answer }];
+}
+
+function toolResultText(stub) {
+  const second = stub.requests.filter((r) => r.path.startsWith("/v1/chat/completions"))[1];
+  const tool = second?.body?.messages?.find((m) => m.role === "tool");
+  return typeof tool?.content === "string" ? tool.content : JSON.stringify(tool?.content);
+}
+
+// Real Pi, real bash tool: the guard has to be wired to the event Pi actually fires.
+test("a destructive command is blocked when there is no terminal to ask in", async () => {
+  const stub = await startStubGateway({ chat: deleteThenAnswer() });
+  const box = sandbox();
+  mkdirSync(path.join(box.home, "victim"));
+  try {
+    const result = await runQmg(PRINT_ARGS, { base: stub.base, ...box });
+
+    assert.equal(result.code, 0, result.output);
+    assert.ok(existsSync(path.join(box.home, "victim")), "the directory must survive");
+    assert.match(toolResultText(stub), /--yolo/, "the model is told why, and how to allow it");
+  } finally {
+    await stub.close();
+  }
+});
+
+test("--yolo lets the same command run", async () => {
+  const stub = await startStubGateway({ chat: deleteThenAnswer() });
+  const box = sandbox();
+  mkdirSync(path.join(box.home, "victim"));
+  try {
+    const result = await runQmg([...PRINT_ARGS, "--yolo"], { base: stub.base, ...box });
+
+    assert.equal(result.code, 0, result.output);
+    assert.equal(existsSync(path.join(box.home, "victim")), false);
+  } finally {
+    await stub.close();
+  }
+});
+
+// Interactive path through a real UI channel: Pi's RPC mode turns ctx.ui.select
+// into a JSON request on stdout and waits for the answer on stdin — the same
+// call the terminal dialog makes.
+function runRpc({ base, home, modelsFile }, answer) {
+  return new Promise((resolve, reject) => {
+    const env = { ...process.env, QMG_HOME: home, QUMGE_API_BASE: base, QUMGE_MODELS_FILE: modelsFile, QUMGE_API_KEY: KEY };
+    const child = spawn(process.execPath, [BIN, "--mode", "rpc", "--no-session", "--provider", "qumge", "--model", "test/model"],
+      { cwd: home, env, stdio: ["pipe", "pipe", "pipe"] });
+    const asked = [];
+    let buffer = "";
+    const timer = setTimeout(() => { child.kill(); reject(new Error(`rpc run timed out; asked=${JSON.stringify(asked)}`)); }, 20000);
+    child.stdout.on("data", (chunk) => {
+      buffer += chunk;
+      let newline;
+      while ((newline = buffer.indexOf("\n")) >= 0) {
+        const line = buffer.slice(0, newline);
+        buffer = buffer.slice(newline + 1);
+        let message;
+        try { message = JSON.parse(line); } catch { continue; }
+        if (message.type === "extension_ui_request" && message.method === "select") {
+          asked.push({ title: message.title, options: message.options });
+          child.stdin.write(JSON.stringify({ type: "extension_ui_response", id: message.id, value: answer }) + "\n");
+        }
+        if (message.type === "agent_end") {
+          clearTimeout(timer);
+          child.kill();
+          resolve({ asked });
+        }
+      }
+    });
+    child.stdin.write(JSON.stringify({ id: "p1", type: "prompt", message: "clean up" }) + "\n");
+  });
+}
+
+test("interactive: the user is asked, and Deny keeps the files", async () => {
+  const stub = await startStubGateway({ chat: deleteThenAnswer() });
+  const box = sandbox();
+  mkdirSync(path.join(box.home, "victim"));
+  try {
+    const { asked } = await runRpc({ base: stub.base, ...box }, "Deny");
+    assert.equal(asked.length, 1);
+    assert.match(asked[0].title, /rm -rf victim/);
+    assert.deepEqual(asked[0].options, ["Allow once", "Allow for this session", "Deny"]);
+    assert.ok(existsSync(path.join(box.home, "victim")));
+    assert.match(toolResultText(stub), /declined/);
+  } finally {
+    await stub.close();
+  }
+});
+
+test("interactive: Allow once runs the command", async () => {
+  const stub = await startStubGateway({ chat: deleteThenAnswer() });
+  const box = sandbox();
+  mkdirSync(path.join(box.home, "victim"));
+  try {
+    const { asked } = await runRpc({ base: stub.base, ...box }, "Allow once");
+    assert.equal(asked.length, 1);
+    assert.equal(existsSync(path.join(box.home, "victim")), false);
+  } finally {
+    await stub.close();
+  }
+});
+

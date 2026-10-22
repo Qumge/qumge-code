@@ -67,6 +67,26 @@ qumge help                            # the full flag list
 | `/models` | The same list, inside a session |
 | `/balance` | The same balance, inside a session |
 
+## What it asks before doing
+
+The agent reads, edits, runs tests and uses git without asking. It stops and
+asks only before the few things that cannot be undone:
+
+- recursive deletes (`rm -rf`, `Remove-Item -Recurse`)
+- `git reset --hard`, `git push --force`, `git clean -f`, `git branch -D`
+- `sudo`
+- reading or writing secrets files (`.env`, `~/.ssh`, `~/.aws`, `~/.qmg`, …)
+
+Choose **Allow once**, **Allow for this session** (stops asking for that kind
+until you start a new session), or **Deny**. In print mode (`qumge -p`) there
+is no one to ask, so those calls are refused; pass `--yolo` (or set
+`QUMGE_YOLO=1`) to allow everything.
+
+This catches the model slipping; it is not a sandbox. It matches command text,
+so a command hidden inside a script is not seen, and the agent runs with your
+user's permissions. Work in a git repository with your changes committed, or
+run it in a container.
+
 ## Models
 
 The model list shown by `qumge models` is live. The catalog bundled with the
@@ -80,10 +100,13 @@ belongs to another account.
 
 **`Insufficient balance ... top up at ...`** — open the link to add funds.
 
-**`Qumge returned a non-JSON response — the request was blocked before it
-reached the API.`** — a network edge refused the request before it reached
-Qumge. Retry; if it persists, report it at
+**`Qumge's network edge blocked this request before it reached the API`** —
+the firewall in front of Qumge refused something in the conversation. Start a
+new session with `/new`; if it keeps happening, report it at
 https://github.com/Qumge/qumge-code/issues.
+
+**`Qumge returned a non-JSON response`** (from `qumge balance` / `qumge models`)
+— the same edge refused a request. Retry; if it persists, report it as above.
 
 **`Could not reach Qumge`** — check your connection or proxy settings.
 
