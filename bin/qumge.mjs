@@ -13,15 +13,17 @@ const pkg = JSON.parse(readFileSync(path.join(pkgRoot, "package.json"), "utf8"))
 const USAGE = `QMG Code ${pkg.version}
 
 Usage:
-  qmg                 start the coding agent
-  qmg login           sign in with your Qumge account
-  qmg logout          forget the saved account
-  qmg balance         show your credit balance
-  qmg models          list the models you can use
+  qumge               start the coding agent
+  qumge login         sign in with your Qumge account
+  qumge logout        forget the saved account
+  qumge balance       show your credit balance
+  qumge models        list the models you can use
+
+qmg is an alias for qumge — both run this same command.
 
 Everything else is passed to the agent, e.g.:
-  qmg -p "fix the failing test"
-  qmg --model deepseek/deepseek-chat
+  qumge -p "fix the failing test"
+  qumge --model deepseek/deepseek-chat
 `;
 
 const argv = process.argv.slice(2);
@@ -64,8 +66,8 @@ switch (command) {
     saveCredentials(credentials);
     saveCatalog(catalog);
     console.log(`Signed in as ${creds.email}.`);
-    console.log(`Default model: ${creds.default_model || "none — pick one with qmg models"}`);
-    console.log("Start with: qmg");
+    console.log(`Default model: ${creds.default_model || "none — pick one with qumge models"}`);
+    console.log("Start with: qumge");
     process.exit(0);
     break;
   }
@@ -73,7 +75,7 @@ switch (command) {
 
 const creds = loadCredentials();
 if (!creds) {
-  console.error("Run qmg login first.");
+  console.error("Run qumge login first.");
   process.exit(1);
 }
 

@@ -44,7 +44,7 @@ test("a 401 becomes the sentence that fixes it", async () => {
     () => ({ status: 401, body: { error: { message: "Invalid API key" } } }),
     async (base) => {
       const client = apiClient({ apiBase: base, apiKey: "sk_bad" });
-      await assert.rejects(client.balance(), /Invalid API key — run qmg login again\./);
+      await assert.rejects(client.balance(), /Invalid API key — run qumge login again\./);
     }
   );
 });
@@ -94,7 +94,7 @@ test("explains a bad key after the failure", async () => {
   await withServer(
     () => ({ status: 401, body: { error: { message: "Invalid API key" } } }),
     async (base) => {
-      assert.match(await explainFailure({ apiBase: base, apiKey: "sk_bad" }), /run qmg login again/);
+      assert.match(await explainFailure({ apiBase: base, apiKey: "sk_bad" }), /run qumge login again/);
     }
   );
 });

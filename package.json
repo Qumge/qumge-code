@@ -1,10 +1,11 @@
 {
   "name": "qumge-code",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "QMG Code — a coding agent for your terminal, powered by Qumge models.",
   "type": "module",
   "bin": {
-    "qmg": "./bin/qmg.mjs"
+    "qumge": "./bin/qumge.mjs",
+    "qmg": "./bin/qumge.mjs"
   },
   "engines": {
     "node": ">=22.19.0"

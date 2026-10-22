@@ -5,9 +5,9 @@ key, pay as you go — no per-seat subscription.
 
 ```bash
 curl -fsSL https://qumge.com/install.sh | sh
-qmg login
+qumge login
 cd your-repo
-qmg
+qumge
 ```
 
 ## Requirements
@@ -34,48 +34,48 @@ curl -fsSL https://qumge.com/install.sh | sh
 ## Sign in
 
 ```bash
-qmg login
+qumge login
 ```
 
 It prints a link and a code. Open the link, approve the device, and the key is
 saved to `~/.qmg/credentials.json` (readable only by you).
 
 ```bash
-qmg logout     # forget the saved account
+qumge logout     # forget the saved account
 ```
 
 ## Use
 
-Run `qmg` inside a repository to start the agent. Everything after `qmg` is
+Run `qumge` inside a repository to start the agent. Everything after `qumge` is
 passed through to the agent, so the usual flags work:
 
 ```bash
-qmg -p "fix the failing test"         # one-off, print the answer, exit
-qmg --model deepseek/deepseek-chat    # pick a model for this run
-qmg help                              # the full flag list
+qumge -p "fix the failing test"         # one-off, print the answer, exit
+qumge --model deepseek/deepseek-chat    # pick a model for this run
+qumge help                            # the full flag list
 ```
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
-| `qmg` | Start the agent with your default model |
-| `qmg login` | Sign in through the device flow |
-| `qmg logout` | Delete the saved account |
-| `qmg balance` | Wallet balance, withdrawable amount, earnings this month |
-| `qmg models` | Coding models and their prices |
+| `qumge` | Start the agent with your default model |
+| `qumge login` | Sign in through the device flow |
+| `qumge logout` | Delete the saved account |
+| `qumge balance` | Wallet balance, withdrawable amount, earnings this month |
+| `qumge models` | Coding models and their prices |
 | `/models` | The same list, inside a session |
 | `/balance` | The same balance, inside a session |
 
 ## Models
 
-The model list shown by `qmg models` is live. The catalog bundled with the
+The model list shown by `qumge models` is live. The catalog bundled with the
 package is refreshed with each release, so launching never waits on a network
-request; run `qmg models` when you want the current prices.
+request; run `qumge models` when you want the current prices.
 
 ## Troubleshooting
 
-**`Invalid API key — run qmg login again.`** — the saved key was revoked or
+**`Invalid API key — run qumge login again.`** — the saved key was revoked or
 belongs to another account.
 
 **`Insufficient balance ... top up at ...`** — open the link to add funds.

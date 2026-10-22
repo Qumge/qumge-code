@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { startStubGateway } from "./helpers/stub-gateway.mjs";
 
-const BIN = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../bin/qmg.mjs");
+const BIN = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../bin/qumge.mjs");
 const KEY = "sk_e2e";
 
 const MODEL = {
@@ -84,7 +84,7 @@ test("without credentials nothing is sent anywhere", async () => {
     const result = await runQmg(PRINT_ARGS, { base: stub.base, ...box, apiKey: null });
 
     assert.equal(result.code, 1);
-    assert.match(result.stderr, /Run qmg login first\./);
+    assert.match(result.stderr, /Run qumge login first\./);
     assert.equal(stub.requests.length, 0);
   } finally {
     await stub.close();
@@ -101,7 +101,7 @@ test("a 401 is explained and the balance check comes after the failed call", asy
     const result = await runQmg(PRINT_ARGS, { base: stub.base, ...box });
 
     assert.notEqual(result.code, 0);
-    assert.match(result.output, /Invalid API key — run qmg login again\./);
+    assert.match(result.output, /Invalid API key — run qumge login again\./);
 
     const chatAt = stub.requests.findIndex((r) => r.path.startsWith("/v1/chat/completions"));
     const balanceAt = stub.requests.findIndex((r) => r.path.startsWith("/v1/balance"));

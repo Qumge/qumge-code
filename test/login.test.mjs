@@ -115,13 +115,13 @@ test("slow_down adds five seconds to every later wait", async () => {
   );
 });
 
-test("an expired request tells the user to run qmg login again", async () => {
+test("an expired request tells the user to run qumge login again", async () => {
   await withServer(
     deviceRoutes([{ status: 400, body: { error: "expired_token" } }]),
     async (base) => {
       await assert.rejects(
         login({ apiBase: base, out: () => {}, sleep: async () => {} }),
-        (error) => /expired/i.test(error.message) && /qmg login/.test(error.message)
+        (error) => /expired/i.test(error.message) && /qumge login/.test(error.message)
       );
     }
   );

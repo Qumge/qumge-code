@@ -47,7 +47,7 @@ export default function (pi) {
     description: "Qumge coding models and prices",
     handler: async (_args, ctx) => {
       const client = sessionClient(base);
-      if (!client) return say(ctx, "No Qumge key in this session — run qmg login.");
+      if (!client) return say(ctx, "No Qumge key in this session — run qumge login.");
       try {
         say(ctx, formatModels((await client.models("coding")).data).join("\n"));
       } catch (error) {
@@ -60,7 +60,7 @@ export default function (pi) {
     description: "Qumge wallet balance",
     handler: async (_args, ctx) => {
       const client = sessionClient(base);
-      if (!client) return say(ctx, "No Qumge key in this session — run qmg login.");
+      if (!client) return say(ctx, "No Qumge key in this session — run qumge login.");
       try {
         say(ctx, formatBalance(await client.balance()).join("\n"));
       } catch (error) {

@@ -69,14 +69,14 @@ test("adds /models and /balance without shadowing Pi's commands", () => {
   assert.deepEqual(pi.calls.commands.map((c) => c.name).sort(), ["balance", "models"]);
 });
 
-test("an in-session command without a key points at qmg login", async () => {
+test("an in-session command without a key points at qumge login", async () => {
   delete process.env.QUMGE_API_KEY;
   const pi = fakePi();
   extension(pi);
   const balance = pi.calls.commands.find((c) => c.name === "balance");
   const notices = [];
   await balance.options.handler("", { hasUI: true, ui: { notify: (message) => notices.push(message) } });
-  assert.match(notices.join("\n"), /qmg login/);
+  assert.match(notices.join("\n"), /qumge login/);
 });
 
 // 启动时一次 fetch 就等于把目录下载摆在第一个 token 前面。
@@ -104,7 +104,7 @@ test("treats a literal 'undefined' base as missing", () => {
 
 // 登录时缓存下来的目录优先于随包的那份：价格只在网关里是真的，随包的目录
 // 在发布那一刻就开始变旧。
-test("prefers the catalog cached by qmg login over the bundled one", () => {
+test("prefers the catalog cached by qumge login over the bundled one", () => {
   const home = mkdtempSync(path.join(tmpdir(), "qmg-home-"));
   writeFileSync(
     path.join(home, "models.json"),

@@ -16,7 +16,7 @@ test("ships everything the CLI needs at runtime", () => {
   const files = entry.files.map((file) => file.path);
 
   for (const expected of [
-    "bin/qmg.mjs",
+    "bin/qumge.mjs",
     "extension.js",
     "models.json",
     "lib/args.mjs",
@@ -31,6 +31,12 @@ test("ships everything the CLI needs at runtime", () => {
   // The tests and the generator are for maintainers, not for users.
   assert.ok(!files.some((file) => file.startsWith("test/")), "tests ship to every user");
   assert.ok(!files.some((file) => file.startsWith("scripts/")), "scripts ship to every user");
+});
+
+test("installs both `qumge` and the short `qmg` alias", () => {
+  const bin = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).bin;
+  assert.equal(bin.qumge, "./bin/qumge.mjs");
+  assert.equal(bin.qmg, "./bin/qumge.mjs", "the old name keeps working");
 });
 
 test("pins the Node floor and the exact Pi version", () => {
