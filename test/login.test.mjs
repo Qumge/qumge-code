@@ -82,6 +82,7 @@ test("prints the sign-in URL and code, polls, and returns the new key", async ()
       const out = [];
       const sleeps = [];
       const creds = await login({
+        openBrowser: () => false,
         apiBase: base,
         out: (line) => out.push(line),
         sleep: async (ms) => sleeps.push(ms)
@@ -109,7 +110,7 @@ test("slow_down adds five seconds to every later wait", async () => {
     ]),
     async (base) => {
       const sleeps = [];
-      await login({ apiBase: base, out: () => {}, sleep: async (ms) => sleeps.push(ms) });
+      await login({ openBrowser: () => false, apiBase: base, out: () => {}, sleep: async (ms) => sleeps.push(ms) });
       assert.deepEqual(sleeps, [1000, 6000, 6000]);
     }
   );
@@ -120,7 +121,7 @@ test("an expired request tells the user to run qumge login again", async () => {
     deviceRoutes([{ status: 400, body: { error: "expired_token" } }]),
     async (base) => {
       await assert.rejects(
-        login({ apiBase: base, out: () => {}, sleep: async () => {} }),
+        login({ openBrowser: () => false, apiBase: base, out: () => {}, sleep: async () => {} }),
         (error) => /expired/i.test(error.message) && /qumge login/.test(error.message)
       );
     }
@@ -132,7 +133,7 @@ test("a denied request says it was denied on the website", async () => {
     deviceRoutes([{ status: 400, body: { error: "access_denied" } }]),
     async (base) => {
       await assert.rejects(
-        login({ apiBase: base, out: () => {}, sleep: async () => {} }),
+        login({ openBrowser: () => false, apiBase: base, out: () => {}, sleep: async () => {} }),
         /denied/i
       );
     }
@@ -143,7 +144,7 @@ test("picks the cheapest featured coding model as the default", async () => {
   await withServer(
     deviceRoutes([{ body: { access_token: "sk_new", token_type: "bearer" } }]),
     async (base) => {
-      const creds = await login({ apiBase: base, out: () => {}, sleep: async () => {} });
+      const creds = await login({ openBrowser: () => false, apiBase: base, out: () => {}, sleep: async () => {} });
       assert.equal(creds.default_model, "fast/cheap");
       assert.deepEqual(Object.keys(creds).sort(), ["api_base", "api_key", "catalog", "default_model", "email"]);
     }
@@ -157,7 +158,7 @@ test("an HTML body from the edge fails as a non-JSON response", async () => {
     },
     async (base) => {
       await assert.rejects(
-        login({ apiBase: base, out: () => {}, sleep: async () => {} }),
+        login({ openBrowser: () => false, apiBase: base, out: () => {}, sleep: async () => {} }),
         /non-JSON response/
       );
     }
@@ -170,9 +171,29 @@ test("returns the coding catalog it fetched during sign-in", async () => {
   await withServer(
     deviceRoutes([{ body: { access_token: "sk_new", token_type: "bearer" } }]),
     async (base) => {
-      const creds = await login({ apiBase: base, out: () => {}, sleep: async () => {} });
+      const creds = await login({ openBrowser: () => false, apiBase: base, out: () => {}, sleep: async () => {} });
       assert.deepEqual(creds.catalog.data.map((m) => m.id), ["slow/expensive", "fast/cheap", "plain/model"]);
       assert.ok(creds.catalog.generated_at, "the cache is stamped so a stale file is obvious");
     }
   );
 });
+
+test("opens the sign-in page in the browser and still prints the link", async () => {
+  await withServer(
+    deviceRoutes([{ body: { access_token: "sk_new", token_type: "bearer" } }]),
+    async (base) => {
+      const opened = [];
+      const out = [];
+      await login({
+        apiBase: base, out: (line) => out.push(line), sleep: async () => {},
+        openBrowser: (url) => { opened.push(url); return true; }
+      });
+      assert.deepEqual(opened, [DEVICE_CODE.verification_uri_complete]);
+      const printed = out.join("\n");
+      assert.match(printed, /Opening your browser/);
+      assert.ok(printed.includes(DEVICE_CODE.verification_uri_complete), "the link is the fallback");
+      assert.match(printed, /ABCD-1234/);
+    }
+  );
+});
+
