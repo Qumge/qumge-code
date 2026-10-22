@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, statSync, writeFileSync } from "n
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-const { saveCredentials, loadCredentials, clearCredentials } = await import("../lib/credentials.mjs");
+const { saveCredentials, loadCredentials, clearCredentials, saveCatalog, loadCatalog } = await import("../lib/credentials.mjs");
 
 function freshHome() {
   process.env.QMG_HOME = mkdtempSync(path.join(tmpdir(), "qmg-test-"));
@@ -54,4 +54,26 @@ test("honours a QMG_HOME that already exists with wider permissions", () => {
   process.env.QMG_HOME = home;
   saveCredentials(creds);
   assert.equal(statSync(path.join(home, "credentials.json")).mode & 0o777, 0o600);
+});
+
+// 模型目录在登录时落盘：价格的唯一来源是网关，随包发出去的那份到下个版本就会旧。
+test("caches the coding catalog next to the credentials", () => {
+  const home = freshHome();
+  const catalog = { generated_at: "2026-10-22T00:00:00.000Z", data: [{ id: "a/b", coding: true }] };
+
+  saveCatalog(catalog);
+
+  assert.deepEqual(loadCatalog(), catalog);
+  assert.equal(statSync(path.join(home, "models.json")).mode & 0o777, 0o600);
+});
+
+test("a missing or corrupt cached catalog is null, never a crash", () => {
+  const home = freshHome();
+  assert.equal(loadCatalog(), null);
+
+  writeFileSync(path.join(home, "models.json"), "{ not json");
+  assert.equal(loadCatalog(), null);
+
+  writeFileSync(path.join(home, "models.json"), JSON.stringify({ data: "nope" }));
+  assert.equal(loadCatalog(), null);
 });

@@ -145,7 +145,7 @@ test("picks the cheapest featured coding model as the default", async () => {
     async (base) => {
       const creds = await login({ apiBase: base, out: () => {}, sleep: async () => {} });
       assert.equal(creds.default_model, "fast/cheap");
-      assert.deepEqual(Object.keys(creds).sort(), ["api_base", "api_key", "default_model", "email"]);
+      assert.deepEqual(Object.keys(creds).sort(), ["api_base", "api_key", "catalog", "default_model", "email"]);
     }
   );
 });
@@ -160,6 +160,19 @@ test("an HTML body from the edge fails as a non-JSON response", async () => {
         login({ apiBase: base, out: () => {}, sleep: async () => {} }),
         /non-JSON response/
       );
+    }
+  );
+});
+
+// 目录随登录一起带回来，由调用方落盘：登录本来就要打这两个接口，
+// 编辑时的启动路径因此仍然一次网络都不发。
+test("returns the coding catalog it fetched during sign-in", async () => {
+  await withServer(
+    deviceRoutes([{ body: { access_token: "sk_new", token_type: "bearer" } }]),
+    async (base) => {
+      const creds = await login({ apiBase: base, out: () => {}, sleep: async () => {} });
+      assert.deepEqual(creds.catalog.data.map((m) => m.id), ["slow/expensive", "fast/cheap", "plain/model"]);
+      assert.ok(creds.catalog.generated_at, "the cache is stamped so a stale file is obvious");
     }
   );
 });

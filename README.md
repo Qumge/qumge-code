@@ -4,7 +4,7 @@ A coding agent for your terminal, powered by Qumge models. One account, one
 key, pay as you go — no per-seat subscription.
 
 ```bash
-npm i -g qumge-code
+curl -fsSL https://qumge.com/install.sh | sh
 qmg login
 cd your-repo
 qmg
@@ -18,7 +18,17 @@ qmg
 ## Install
 
 ```bash
-npm i -g qumge-code
+curl -fsSL https://qumge.com/install.sh | sh
+```
+
+The installer checks Node, then installs into `~/.local/bin` (no sudo, no
+change to a system Node's global prefix). If `~/.local/bin` is not on your
+`PATH`, it prints the one line to add.
+
+The package is served from qumge.com, not from npm. The same command upgrades:
+
+```bash
+curl -fsSL https://qumge.com/install.sh | sh
 ```
 
 ## Sign in

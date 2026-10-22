@@ -2,14 +2,18 @@ import { readFileSync } from "node:fs";
 import { apiClient } from "./lib/api.mjs";
 import { formatBalance, formatModels } from "./lib/format.mjs";
 import { codingModels } from "./lib/models.mjs";
+import { loadCatalog } from "./lib/credentials.mjs";
 
 const DEFAULT_BASE = "https://qumge.com";
 
-// Bundled on purpose: a fetch here would put a catalog download in front of
-// the first token. Regenerated at release by `npm run models`.
-function bundledCatalog() {
-  const file = process.env.QUMGE_MODELS_FILE || new URL("./models.json", import.meta.url);
-  return JSON.parse(readFileSync(file, "utf8"));
+// No fetch here — a catalog download in front of the first token would be paid
+// on every start. qmg login writes the live catalog next to the credentials;
+// the bundled copy is the fallback for a key that was never logged in.
+function catalog() {
+  if (process.env.QUMGE_MODELS_FILE) {
+    return JSON.parse(readFileSync(process.env.QUMGE_MODELS_FILE, "utf8"));
+  }
+  return loadCatalog() || JSON.parse(readFileSync(new URL("./models.json", import.meta.url), "utf8"));
 }
 
 // Pi installs a no-op UI in print mode, so notify would vanish there.
@@ -36,7 +40,7 @@ export default function (pi) {
     baseUrl: `${base}/v1`,
     apiKey: "$QUMGE_API_KEY",
     api: "openai-completions",
-    models: codingModels(bundledCatalog())
+    models: codingModels(catalog())
   });
 
   pi.registerCommand("models", {

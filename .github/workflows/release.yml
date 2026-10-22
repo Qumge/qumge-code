@@ -23,9 +23,12 @@ jobs:
 
       - run: npm test
 
-      # The bundle ships the catalog; an empty one must never reach npm.
-      - run: node scripts/check-catalog.mjs
-
-      - run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Distribution is the tarball, served from qumge.com. Running the pack
+      # here proves the package can be built; moving it into qumg
+      # (public/downloads/qmg-code/) and bumping InstallController::VERSION is
+      # a deliberate, reviewed step — the page's test fails until both agree.
+      - run: npm pack
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qumge-code-tarball
+          path: qumge-code-*.tgz

@@ -101,3 +101,32 @@ test("treats a literal 'undefined' base as missing", () => {
   assert.equal(pi.calls.providers[0].config.baseUrl, "https://qumge.com/v1");
   delete process.env.QUMGE_API_BASE;
 });
+
+// 登录时缓存下来的目录优先于随包的那份：价格只在网关里是真的，随包的目录
+// 在发布那一刻就开始变旧。
+test("prefers the catalog cached by qmg login over the bundled one", () => {
+  const home = mkdtempSync(path.join(tmpdir(), "qmg-home-"));
+  writeFileSync(
+    path.join(home, "models.json"),
+    JSON.stringify({
+      generated_at: "2026-10-22T00:00:00.000Z",
+      data: [
+        { id: "cached/model", display_name: "Cached", context_window: 8192, max_tokens: 1024,
+          input_price_per_mtoken_usd: 1, output_price_per_mtoken_usd: 2,
+          featured: true, coding: true, capabilities: { tools: true, vision: false },
+          input_modalities: ["text"] }
+      ]
+    })
+  );
+
+  const previous = process.env.QMG_HOME;
+  process.env.QMG_HOME = home;
+  try {
+    const pi = fakePi();
+    extension(pi);
+    assert.deepEqual(pi.calls.providers[0].config.models.map((m) => m.id), ["cached/model"]);
+  } finally {
+    if (previous === undefined) delete process.env.QMG_HOME;
+    else process.env.QMG_HOME = previous;
+  }
+});
