@@ -65,7 +65,7 @@ function extensionLoad() {
     import { performance } from "node:perf_hooks";
     const t0 = performance.now();
     const mod = await import(${JSON.stringify(EXTENSION)});
-    mod.default({ registerProvider() {}, registerCommand() {} });
+    mod.default({ registerProvider() {}, registerCommand() {}, registerFlag() {}, getFlag() {}, on() {} });
     console.log(performance.now() - t0);
   `;
   const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], { encoding: "utf8" });

@@ -101,6 +101,11 @@ if (command === "balance" || command === "models") {
 
 const { args, env } = planInvocation(argv, { creds, pkgRoot });
 
+// Once a day, refresh the cached model catalog in a detached process. This run
+// keeps the catalog it has; the next one picks up the fresh copy.
+const { maybeRefreshInBackground } = await import("../lib/catalog-refresh.mjs");
+maybeRefreshInBackground({ env });
+
 let cli;
 try {
   cli = process.env.QMG_PI_CLI || resolvePiCli();

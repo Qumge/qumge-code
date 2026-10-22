@@ -25,30 +25,31 @@ BENCH_RUNS=50 npm run bench
 
 ## Result
 
-Environment: macOS (darwin/arm64), Node v24.18.0, 20 runs after 3 warm-up.
+Environment: macOS (darwin/arm64), Node v24.18.0, 10 runs after 3 warm-up
+(re-measured 2026-10-22 for 0.1.8).
 
 | metric | n | min | p50 | p95 | max |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `qumge --version` (our process) | 20 | 22 | 23 | 26 | 26 |
-| `pi --version` (bare Pi) | 20 | 110 | 112 | 117 | 117 |
-| extension load + register | 20 | 2 | 2 | 2 | 2 |
-| `qumge -p` → first output (stub) | 10 | 186 | 188 | 201 | 201 |
-| `qumge -p` → exit (stub) | 10 | 191 | 193 | 208 | 208 |
-| `pi -p` → first output (same args, no launcher) | 10 | 163 | 164 | 167 | 167 |
+| `qumge --version` (our process) | 10 | 23 | 23 | 25 | 25 |
+| `pi --version` (bare Pi) | 10 | 113 | 115 | 121 | 121 |
+| extension load + register | 10 | 4 | 4 | 4 | 4 |
+| `qumge -p` → first output (stub) | 5 | 217 | 219 | 226 | 226 |
+| `qumge -p` → exit (stub) | 5 | 222 | 224 | 232 | 232 |
+| `pi -p` → first output (same args, no launcher) | 5 | 194 | 197 | 197 | 197 |
 
-**Launcher overhead: 24.3 ms (p50) to first output.** Of that, ~20 ms is Node
-booting the launcher process at all (`node -e ""` measures ~20 ms here) and
-~3 ms is our own argument planning, credentials read and catalog parse.
-Registering the extension costs 2 ms and makes no network request.
+**Launcher overhead: 22.6 ms (p50) to first output**, almost all of it Node
+booting the launcher process. Registering the extension costs 4 ms.
 
-Against a real model call, which is measured in seconds, 24 ms is noise; the
-number to watch is that it stays flat and stays a single Node boot.
+Watch the extension-load row: 0.1.2–0.1.7 imported Pi's OpenAI Chat
+Completions module at load (for the gzip transport) and it read 40 ms. It is
+now imported on the first model request instead.
 
 ## What we deliberately do not do on startup
 
-- No network: the model catalog is bundled in the package and refreshed at
-  `qumge login`, which is already a network conversation. A fetch here would
-  put a catalog download in front of the first token.
+- No network in front of the first token: the model catalog is cached at
+  `qumge login`. When it is older than a day the launcher starts a detached
+  process to refresh it and does not wait; this run keeps the cached catalog,
+  the next run gets the fresh one. A failed refresh is retried at most hourly.
 - No dependency tree walk, no version check, no telemetry.
 
 ## If the launcher ever needs to get faster

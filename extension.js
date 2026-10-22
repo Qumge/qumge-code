@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import { streamSimple as openAICompletions } from "@earendil-works/pi-ai/api/openai-completions";
 import { apiClient } from "./lib/api.mjs";
 import { formatBalance, formatModels } from "./lib/format.mjs";
 import { codingModels } from "./lib/models.mjs";
@@ -54,8 +53,15 @@ export default function (pi) {
     // fetch underneath: gzip request bodies past the edge firewall and turn
     // its HTML block page into an error (see lib/transport.mjs). Scoped to this
     // provider; other providers keep Pi's default transport.
-    streamSimple: (model, context, options) =>
-      openAICompletions(model, context, { ...options, fetch: qumgeFetch(options?.fetch) })
+    //
+    // Imported on the first request, not at load: the module costs ~40 ms and
+    // startup is the one place that cost is paid on every run. Pi awaits this
+    // inside its own async setup (provider-composer streamWith), so returning a
+    // promise of the stream is fine.
+    streamSimple: async (model, context, options) => {
+      const { streamSimple: openAICompletions } = await import("@earendil-works/pi-ai/api/openai-completions");
+      return openAICompletions(model, context, { ...options, fetch: qumgeFetch(options?.fetch) });
+    }
   });
 
   // /prices, not /models: Pi's own /model sits one letter away and does

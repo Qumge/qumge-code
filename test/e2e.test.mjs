@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -40,6 +40,8 @@ function sandbox({ withCredentials = true } = {}) {
 function runQmg(args, { base, home, modelsFile, apiKey = KEY }) {
   return new Promise((resolve) => {
     const env = { ...process.env, QMG_HOME: home, QUMGE_API_BASE: base, QUMGE_MODELS_FILE: modelsFile };
+    // spawn would pass undefined as the string "undefined" — a catalog path that does not exist.
+    if (modelsFile === undefined) delete env.QUMGE_MODELS_FILE;
     delete env.QUMGE_API_KEY;
     if (apiKey) env.QUMGE_API_KEY = apiKey;
 
@@ -297,6 +299,34 @@ test("interactive: Allow once runs the command", async () => {
     const { asked } = await runRpc({ base: stub.base, ...box }, "Allow once");
     assert.equal(asked.length, 1);
     assert.equal(existsSync(path.join(box.home, "victim")), false);
+  } finally {
+    await stub.close();
+  }
+});
+
+// 目录每天在后台刷新一次：这次运行照常用手上的目录、不等网络；脱离的子进程把新目录写回
+// ~/.qmg/models.json，下次启动才用上。这里不设 QUMGE_MODELS_FILE，走真实的缓存路径。
+test("a stale catalog is refreshed in the background without delaying the run", async () => {
+  const stub = await startStubGateway({
+    models: [{ ...MODEL, id: "fresh/model" }]
+  });
+  const box = sandbox();
+  const cached = path.join(box.home, "models.json");
+  writeFileSync(cached, JSON.stringify({ generated_at: "2026-01-01T00:00:00.000Z", data: [MODEL] }));
+  try {
+    const result = await runQmg(PRINT_ARGS, { base: stub.base, home: box.home, modelsFile: undefined });
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.stdout, /OK/, "this run used the catalog it had");
+
+    let refreshed = null;
+    for (let i = 0; i < 50 && !refreshed; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const saved = JSON.parse(readFileSync(cached, "utf8"));
+      if (saved.data.some((m) => m.id === "fresh/model")) refreshed = saved;
+    }
+    assert.ok(refreshed, "the background worker wrote the fresh catalog");
+    assert.ok(Date.parse(refreshed.generated_at) > Date.parse("2026-01-01"), "and stamped it");
+    assert.ok(stub.requests.some((r) => r.path === "/v1/models?category=coding" && r.authorization === `Bearer ${KEY}`));
   } finally {
     await stub.close();
   }

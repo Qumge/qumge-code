@@ -90,9 +90,10 @@ run it in a container.
 
 ## Models
 
-The model list shown by `qumge models` is live. The catalog bundled with the
-package is refreshed with each release, so launching never waits on a network
-request; run `qumge models` when you want the current prices.
+`/model` lists the recommended coding models with their prices; `qumge models`
+(or `/prices` inside a session) shows live prices. The list is cached at
+`qumge login` and refreshed in the background once a day, so launching never
+waits on a network request. Set `QMG_NO_CATALOG_REFRESH=1` to turn the refresh off.
 
 ## Troubleshooting
 
