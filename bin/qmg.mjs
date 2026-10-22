@@ -112,10 +112,20 @@ child.on("error", (error) => {
   process.exit(1);
 });
 
-child.on("exit", (code, signal) => {
+child.on("exit", async (code, signal) => {
   if (signal) {
     process.kill(process.pid, signal);
     return;
   }
-  process.exit(code ?? 0);
+  if (!code) process.exit(0);
+
+  // Only after a failure: a check before every start would add the round trip
+  // this launcher is built to avoid.
+  if (process.env.QMG_NO_DIAGNOSE !== "1") {
+    const { explainFailure } = await import("../lib/api.mjs");
+    console.error(
+      await explainFailure({ apiBase: env.QUMGE_API_BASE, apiKey: env.QUMGE_API_KEY })
+    );
+  }
+  process.exit(code);
 });

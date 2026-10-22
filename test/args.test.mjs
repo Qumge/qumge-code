@@ -39,3 +39,14 @@ test("does not overwrite a provider the user chose", () => {
   const { args } = planInvocation(["--provider", "openai", "--model", "gpt"], { creds, pkgRoot: "/pkg" });
   assert.deepEqual(args, ["-e", "/pkg", "--provider", "openai", "--model", "gpt"]);
 });
+
+// Staging and CI point the CLI at another host without rewriting ~/.qmg.
+test("an exported QUMGE_API_BASE wins over the saved api_base", () => {
+  process.env.QUMGE_API_BASE = "https://staging.example";
+  try {
+    const { env } = planInvocation([], { creds, pkgRoot: "/pkg" });
+    assert.equal(env.QUMGE_API_BASE, "https://staging.example");
+  } finally {
+    delete process.env.QUMGE_API_BASE;
+  }
+});

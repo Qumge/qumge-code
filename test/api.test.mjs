@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { apiClient } from "../lib/api.mjs";
+import { apiClient, explainFailure } from "../lib/api.mjs";
 
 async function withServer(handler, fn) {
   const server = createServer((req, res) => {
@@ -77,4 +77,50 @@ test("an HTML edge response says it never reached the API", async () => {
       await assert.rejects(client.models("coding"), /non-JSON response/);
     }
   );
+});
+
+// The launcher runs this only after the agent exited non-zero, so the happy
+// path never pays for it.
+test("a healthy account after a failed run says to read the error above", async () => {
+  await withServer(
+    () => ({ body: { email: "a@b.c" } }),
+    async (base) => {
+      assert.match(await explainFailure({ apiBase: base, apiKey: "sk_test" }), /exited with an error/);
+    }
+  );
+});
+
+test("explains a bad key after the failure", async () => {
+  await withServer(
+    () => ({ status: 401, body: { error: { message: "Invalid API key" } } }),
+    async (base) => {
+      assert.match(await explainFailure({ apiBase: base, apiKey: "sk_bad" }), /run qmg login again/);
+    }
+  );
+});
+
+test("explains an empty wallet with the top-up link", async () => {
+  await withServer(
+    () => ({
+      status: 402,
+      body: { error: { message: "Insufficient balance" }, topup_url: "https://qumge.test/wallet" }
+    }),
+    async (base) => {
+      assert.match(await explainFailure({ apiBase: base, apiKey: "sk_broke" }), /https:\/\/qumge\.test\/wallet/);
+    }
+  );
+});
+
+test("explains an edge block after the failure", async () => {
+  await withServer(
+    () => ({ status: 403, contentType: "text/html", body: "<html>nope</html>" }),
+    async (base) => {
+      assert.match(await explainFailure({ apiBase: base, apiKey: "sk_test" }), /non-JSON response/);
+    }
+  );
+});
+
+test("explains an unreachable gateway instead of a bare fetch error", async () => {
+  const message = await explainFailure({ apiBase: "http://127.0.0.1:1", apiKey: "sk_test" });
+  assert.match(message, /Could not reach Qumge/);
 });
