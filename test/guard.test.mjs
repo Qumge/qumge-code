@@ -11,6 +11,8 @@ test("asks before the irreversible commands", () => {
     "git clean -fdx", "git branch -D feature",
     "sudo npm i -g x", "cd /tmp && sudo rm x",
     "cat .env", "cp ~/.ssh/id_rsa /tmp", "cat ~/.aws/credentials", "cat ~/.qmg/credentials.json",
+    "find . -name '*.log' -delete", "find dist -type f -exec rm {} +", "npx rimraf dist", "shred -u key.pem",
+    "dd if=img.iso of=/dev/sda bs=4M", "mkfs.ext4 /dev/sdb1", "truncate -s 0 app.db",
     "cp .env.example .env", "Remove-Item -Path dist -Recurse -Force", "rmdir /s /q build"
   ]) {
     assert.ok(bash(command), `should ask: ${command}`);
@@ -23,7 +25,9 @@ test("lets ordinary work run without asking", () => {
     "ls -la", "npm test", "npm install", "bin/rails test", "git status", "git diff", "git add -A",
     "git commit -m 'fix'", "git push origin main", "git push -u origin feature", "git reset HEAD file.rb",
     "rm file.txt", "rm -f tmp.log", "cat README.md", "grep -rn environment src", "cp .env.example .env.sample",
-    "echo $HOME/.environment", "git checkout -b new", "git clean -n", "pseudo-sudo --help"
+    "echo $HOME/.environment", "git checkout -b new", "git clean -n", "pseudo-sudo --help",
+    "cargo install sudo-rs", "find . -name '*.rb'", "dd if=/dev/zero of=test.img bs=1M count=1",
+    "echo hi > notes.txt", "truncate -s 10M sparse.img"
   ]) {
     assert.equal(bash(command), null, `should not ask: ${command}`);
   }

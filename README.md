@@ -72,7 +72,8 @@ qumge help                            # the full flag list
 The agent reads, edits, runs tests and uses git without asking. It stops and
 asks only before the few things that cannot be undone:
 
-- recursive deletes (`rm -rf`, `Remove-Item -Recurse`)
+- deletes that cannot be undone (`rm -rf`, `find … -delete`, `rimraf`, `shred`, `Remove-Item -Recurse`)
+- overwriting a disk or wiping a file (`dd of=/dev/…`, `mkfs`, `truncate -s 0`)
 - `git reset --hard`, `git push --force`, `git clean -f`, `git branch -D`
 - `sudo`
 - reading or writing secrets files (`.env`, `~/.ssh`, `~/.aws`, `~/.qmg`, …)
