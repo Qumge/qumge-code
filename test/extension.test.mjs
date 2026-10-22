@@ -93,3 +93,11 @@ test("does no network while loading", () => {  const original = globalThis.fetch
   }
   assert.equal(fetches, 0);
 });
+
+test("treats a literal 'undefined' base as missing", () => {
+  process.env.QUMGE_API_BASE = "undefined";
+  const pi = fakePi();
+  extension(pi);
+  assert.equal(pi.calls.providers[0].config.baseUrl, "https://qumge.com/v1");
+  delete process.env.QUMGE_API_BASE;
+});

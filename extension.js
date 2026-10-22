@@ -25,7 +25,11 @@ function sessionClient(base) {
 }
 
 export default function (pi) {
-  const base = (process.env.QUMGE_API_BASE || DEFAULT_BASE).replace(/\/$/, "");
+  // spawn stringifies an undefined env value, so a saved credential without an
+  // api_base reaches us as the literal string "undefined" — a truthy base URL
+  // that would send every request to undefined/v1.
+  const rawBase = process.env.QUMGE_API_BASE;
+  const base = (rawBase && rawBase !== "undefined" ? rawBase : DEFAULT_BASE).replace(/\/$/, "");
 
   pi.registerProvider("qumge", {
     name: "Qumge",

@@ -134,7 +134,12 @@ test("a 402 points at the top-up URL", async () => {
     error: { code: "insufficient_balance", message: "Wallet balance insufficient" },
     topup_url: "https://qumge.test/gateway/wallet?amount=10"
   };
-  const stub = await startStubGateway({ chat: { status: 402, body }, balance: { status: 402, body } });
+  // What the gateway really answers: the chat call is the 402; /v1/balance is
+  // 200 with an empty wallet and the top-up URL.
+  const stub = await startStubGateway({
+    chat: { status: 402, body },
+    balance: { status: 200, body: { balance_micro_usd: 0, topup_url: body.topup_url } }
+  });
   const box = sandbox();
   try {
     const result = await runQmg(PRINT_ARGS, { base: stub.base, ...box });

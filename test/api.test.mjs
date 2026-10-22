@@ -99,11 +99,14 @@ test("explains a bad key after the failure", async () => {
   );
 });
 
-test("explains an empty wallet with the top-up link", async () => {
+test("explains an empty wallet with the top-up link the balance endpoint returns", async () => {
+  // The real /v1/balance answers 200 with the wallet and its top-up URL even at
+  // zero — it never returns 402, so the 402 body was a fixture only this test
+  // believed in.
   await withServer(
     () => ({
-      status: 402,
-      body: { error: { message: "Insufficient balance" }, topup_url: "https://qumge.test/wallet" }
+      status: 200,
+      body: { balance_micro_usd: 0, balance: 0, topup_url: "https://qumge.test/wallet" }
     }),
     async (base) => {
       assert.match(await explainFailure({ apiBase: base, apiKey: "sk_broke" }), /https:\/\/qumge\.test\/wallet/);

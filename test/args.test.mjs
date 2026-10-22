@@ -50,3 +50,45 @@ test("an exported QUMGE_API_BASE wins over the saved api_base", () => {
     delete process.env.QUMGE_API_BASE;
   }
 });
+
+// Pi 1.4.0 only parses the space-separated forms (dist/cli/args.js); `=` and
+// `-m` fall into unknownFlags or "Unknown option". Normalizing here keeps an
+// obvious invocation working instead of letting Pi drop it.
+test("normalizes --model= and --provider= to the form Pi parses", () => {
+  const { args } = planInvocation(["--model=x/y", "--provider=openai"], { creds, pkgRoot: "/pkg" });
+  assert.deepEqual(args, ["-e", "/pkg", "--model", "x/y", "--provider", "openai"]);
+});
+
+test("-m is not a Pi flag, so it does not count as the model choice", () => {
+  const { args } = planInvocation(["-m", "x/y"], { creds, pkgRoot: "/pkg" });
+  assert.equal(args.includes("--model"), true, "the saved default is still injected");
+});
+
+test("injects no provider when there is no model to run", () => {
+  const { args } = planInvocation([], { creds: { ...creds, default_model: null }, pkgRoot: "/pkg" });
+  assert.deepEqual(args, ["-e", "/pkg"]);
+});
+
+test("disabled extensions mean vanilla Pi — no provider, no model", () => {
+  const { args } = planInvocation(["-ne"], { creds, pkgRoot: "/pkg" });
+  assert.deepEqual(args, ["-ne"]);
+
+  // A user who names their own provider still gets it forwarded untouched.
+  const own = planInvocation(["-ne", "--provider", "openai", "--model", "gpt"], { creds, pkgRoot: "/pkg" });
+  assert.deepEqual(own.args, ["-ne", "--provider", "openai", "--model", "gpt"]);
+});
+
+test("never puts an undefined base or key into the child environment", () => {
+  delete process.env.QUMGE_API_BASE;
+  delete process.env.QUMGE_API_KEY;
+  const { env } = planInvocation([], {
+    creds: { api_key: "sk_qumge_test", default_model: "x/y" },
+    pkgRoot: "/pkg"
+  });
+  assert.equal("QUMGE_API_BASE" in env, false, "spawn would turn undefined into the string \"undefined\"");
+});
+
+test("does not pair its default model with someone else's provider", () => {
+  const { args } = planInvocation(["--provider", "openai"], { creds, pkgRoot: "/pkg" });
+  assert.deepEqual(args, ["-e", "/pkg", "--provider", "openai"]);
+});
