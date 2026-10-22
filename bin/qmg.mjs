@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { planInvocation } from "../lib/args.mjs";
-import { clearCredentials, loadCredentials } from "../lib/credentials.mjs";
+import { clearCredentials, loadCredentials, saveCredentials } from "../lib/credentials.mjs";
 import { resolvePiCli } from "../lib/pi-cli.mjs";
 
 const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -46,6 +46,27 @@ switch (command) {
     console.log("Signed out.");
     process.exit(0);
     break;
+
+  case "login": {
+    // Imported here so the start path does not pay for the login module.
+    const { login } = await import("../lib/login.mjs");
+    let creds;
+    try {
+      creds = await login({
+        apiBase: process.env.QUMGE_API_BASE || "https://qumge.com",
+        locale: process.env.QMG_LOCALE || undefined
+      });
+    } catch (error) {
+      console.error(error.message);
+      process.exit(1);
+    }
+    saveCredentials(creds);
+    console.log(`Signed in as ${creds.email}.`);
+    console.log(`Default model: ${creds.default_model || "none — pick one with qmg models"}`);
+    console.log("Start with: qmg");
+    process.exit(0);
+    break;
+  }
 }
 
 const creds = loadCredentials();
