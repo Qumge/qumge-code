@@ -69,6 +69,7 @@ test("a print-mode run reaches the stub and prints the answer", async () => {
     assert.ok(chat, "the model was called");
     assert.equal(chat.authorization, `Bearer ${KEY}`);
     assert.equal(chat.body.model, "test/model");
+    assert.equal(chat.encoding, "gzip", "chat bodies are compressed past the edge firewall");
 
     // Speed guard: the success path makes no extra round trips.
     assert.equal(stub.requests.filter((r) => r.path.startsWith("/v1/balance")).length, 0);
@@ -146,6 +147,43 @@ test("a 402 points at the top-up URL", async () => {
 
     assert.notEqual(result.code, 0);
     assert.match(result.output, /https:\/\/qumge\.test\/gateway\/wallet\?amount=10/);
+  } finally {
+    await stub.close();
+  }
+});
+
+// The edge firewall reads plain request bodies and blocks some ordinary coding
+// content. It does not read compressed ones — this is the whole point of gzip.
+test("content the edge firewall would block gets through compressed", async () => {
+  const stub = await startStubGateway({
+    blockWhen: (body, encoding) => encoding !== "gzip" && body.includes("../../etc/passwd")
+  });
+  const box = sandbox();
+  try {
+    const args = ["-p", "why does cat ../../etc/passwd fail here?", "--provider", "qumge", "--model", "test/model"];
+    const result = await runQmg(args, { base: stub.base, ...box });
+
+    assert.equal(result.code, 0, result.output);
+    assert.match(result.stdout, /OK/);
+  } finally {
+    await stub.close();
+  }
+});
+
+// If the edge still blocks the chat call, the user gets a sentence they can act
+// on — never the HTML page, and never something that reads like a model reply.
+test("a 403 HTML page on the chat call becomes an actionable error", async () => {
+  const stub = await startStubGateway({
+    chat: { status: 403, contentType: "text/html", body: "<html><body>Sorry, you have been blocked</body></html>" }
+  });
+  const box = sandbox();
+  try {
+    const result = await runQmg(PRINT_ARGS, { base: stub.base, ...box });
+
+    assert.notEqual(result.code, 0);
+    assert.match(result.output, /network edge blocked this request/);
+    assert.match(result.output, /\/new/);
+    assert.doesNotMatch(result.output, /<html>|you have been blocked/);
   } finally {
     await stub.close();
   }

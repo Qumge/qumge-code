@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { gunzipSync } from "node:zlib";
 
 // Minimal OpenAI-compatible gateway for the end-to-end test. It records every
 // request so tests can assert what the launcher actually asked for — order and
@@ -6,6 +7,8 @@ import { createServer } from "node:http";
 export async function startStubGateway({
   chat,
   balance,
+  // Simulates the edge firewall: return true to answer with its 403 HTML page.
+  blockWhen,
   models = [{ id: "test/model", coding: true, featured: true, context_window: 8192, max_tokens: 1024,
     input_price_per_mtoken_usd: 1, output_price_per_mtoken_usd: 2,
     capabilities: { tools: true, vision: false }, input_modalities: ["text"] }]
@@ -29,15 +32,23 @@ export async function startStubGateway({
   };
 
   const server = createServer((req, res) => {
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
     req.on("end", () => {
+      // Inflate like the real gateway does for /v1/* (app/middleware/gzip_request_body.rb).
+      const encoding = req.headers["content-encoding"] || null;
+      const raw = Buffer.concat(chunks);
+      const body = (encoding === "gzip" ? gunzipSync(raw) : raw).toString("utf8");
       requests.push({
         method: req.method,
         path: req.url,
         authorization: req.headers.authorization,
+        encoding,
         body: body ? safeJson(body) : null
       });
+      if (blockWhen && blockWhen(body, encoding)) {
+        return send(res, { status: 403, contentType: "text/html", body: "<html><body>Sorry, you have been blocked</body></html>" });
+      }
 
       if (req.method === "GET" && req.url.startsWith("/v1/models")) {
         return send(res, { status: 200, body: { data: models } });

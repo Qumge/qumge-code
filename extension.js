@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
+import { streamSimple as openAICompletions } from "@earendil-works/pi-ai/api/openai-completions";
 import { apiClient } from "./lib/api.mjs";
 import { formatBalance, formatModels } from "./lib/format.mjs";
 import { codingModels } from "./lib/models.mjs";
 import { loadCatalog } from "./lib/credentials.mjs";
+import { qumgeFetch } from "./lib/transport.mjs";
 
 const DEFAULT_BASE = "https://qumge.com";
 
@@ -40,7 +42,13 @@ export default function (pi) {
     baseUrl: `${base}/v1`,
     apiKey: "$QUMGE_API_KEY",
     api: "openai-completions",
-    models: codingModels(catalog())
+    models: codingModels(catalog()),
+    // Pi's own OpenAI Chat Completions implementation, unchanged, with our
+    // fetch underneath: gzip request bodies past the edge firewall and turn
+    // its HTML block page into an error (see lib/transport.mjs). Scoped to this
+    // provider; other providers keep Pi's default transport.
+    streamSimple: (model, context, options) =>
+      openAICompletions(model, context, { ...options, fetch: qumgeFetch(options?.fetch) })
   });
 
   pi.registerCommand("models", {
