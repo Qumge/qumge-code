@@ -1,0 +1,38 @@
+{
+  "name": "qumge-code",
+  "version": "0.1.0",
+  "description": "QMG Code — a coding agent for your terminal, powered by Qumge models.",
+  "type": "module",
+  "bin": {
+    "qmg": "./bin/qmg.mjs"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "keywords": [
+    "pi-package",
+    "coding-agent",
+    "qumge"
+  ],
+  "pi": {
+    "extensions": [
+      "./extension.js"
+    ]
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "1.4.0"
+  },
+  "license": "MIT",
+  "files": [
+    "bin",
+    "lib",
+    "extension.js",
+    "models.json",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\""
+  }
+}
