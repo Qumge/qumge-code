@@ -1,6 +1,6 @@
 {
   "name": "qumge-code",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "QMG Code — a coding agent for your terminal, powered by Qumge models.",
   "type": "module",
   "bin": {

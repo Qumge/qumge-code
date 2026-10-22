@@ -13,15 +13,18 @@ const payload = {
   ]
 };
 
-test("maps gateway entries to Pi model configs, featured first", () => {
+// 顺序是网关给的（精选在前、再按智能指数）：第一个就是登录后的默认模型。
+// 以前这里按价格重排，新用户拿到的是最便宜的而不是推荐的。
+test("maps gateway entries to Pi model configs and keeps the gateway's order", () => {
   const models = codingModels(payload);
-  assert.deepEqual(models.map((m) => m.id), ["deepseek/deepseek-chat", "anthropic/claude-opus-4-6"]);
-  assert.deepEqual(models[0].cost, { input: 0.28, output: 1.1, cacheRead: 0, cacheWrite: 0 });
-  assert.deepEqual(models[0].input, ["text"]);
-  assert.deepEqual(models[1].input, ["text", "image"]);
-  assert.equal(models[0].maxTokens, 8192);
-  assert.equal(models[0].contextWindow, 128000);
-  assert.equal(models[0].reasoning, false);
+  assert.deepEqual(models.map((m) => m.id), ["anthropic/claude-opus-4-6", "deepseek/deepseek-chat"]);
+  assert.equal(models[1].name, "DeepSeek Chat · in $0.28 / out $1.10 per M", "the picker shows the price");
+  assert.deepEqual(models[1].cost, { input: 0.28, output: 1.1, cacheRead: 0, cacheWrite: 0 });
+  assert.deepEqual(models[1].input, ["text"]);
+  assert.deepEqual(models[0].input, ["text", "image"]);
+  assert.equal(models[1].maxTokens, 8192);
+  assert.equal(models[1].contextWindow, 128000);
+  assert.equal(models[1].reasoning, false);
 });
 
 // 生产网关没升级时不会带 coding 字段。那时保留全部 458 个模型会静默发一个
@@ -37,14 +40,9 @@ test("keeps only entries the gateway marked as coding", () => {
   assert.deepEqual(codingModels(stale).map((m) => m.id), ["x/coding"]);
 });
 
-test("sorts equal prices by id so the picker is stable between runs", () => {
-  const ties = {
-    data: [
-      { ...payload.data[1], id: "b/same", featured: false },
-      { ...payload.data[1], id: "a/same", featured: false }
-    ]
-  };
-  assert.deepEqual(codingModels(ties).map((m) => m.id), ["a/same", "b/same"]);
+test("prices below a dollar keep two significant digits instead of rounding to $0.00", () => {
+  const [cheap] = codingModels({ data: [{ ...payload.data[1], input_price_per_mtoken_usd: 0.0088, output_price_per_mtoken_usd: 0.236 }] });
+  assert.equal(cheap.name, "DeepSeek Chat · in $0.0088 / out $0.24 per M");
 });
 
 test("falls back to Pi's defaults for missing context and output limits", () => {

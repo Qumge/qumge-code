@@ -66,10 +66,10 @@ test("loads the catalog from QUMGE_MODELS_FILE when set", () => {
   assert.deepEqual(pi.calls.providers[0].config.models.map((m) => m.id), ["test/model"]);
 });
 
-test("adds /models and /balance without shadowing Pi's commands", () => {
+test("adds /prices and /balance without shadowing Pi's commands", () => {
   const pi = fakePi();
   extension(pi);
-  assert.deepEqual(pi.calls.commands.map((c) => c.name).sort(), ["balance", "models"]);
+  assert.deepEqual(pi.calls.commands.map((c) => c.name).sort(), ["balance", "prices"]);
 });
 
 test("an in-session command without a key points at qumge login", async () => {

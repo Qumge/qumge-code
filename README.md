@@ -64,7 +64,7 @@ qumge help                            # the full flag list
 | `qumge logout` | Delete the saved account |
 | `qumge balance` | Wallet balance, withdrawable amount, earnings this month |
 | `qumge models` | Coding models and their prices |
-| `/models` | The same list, inside a session |
+| `/prices` | The same list with live prices, inside a session (switch models with `/model`) |
 | `/balance` | The same balance, inside a session |
 
 ## What it asks before doing

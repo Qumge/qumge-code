@@ -140,12 +140,13 @@ test("a denied request says it was denied on the website", async () => {
   );
 });
 
-test("picks the cheapest featured coding model as the default", async () => {
+// 默认模型 = 网关推荐列表的第一个（精选在前、再按智能指数）—— 不在客户端按价格重排。
+test("takes the gateway's first recommended coding model as the default", async () => {
   await withServer(
     deviceRoutes([{ body: { access_token: "sk_new", token_type: "bearer" } }]),
     async (base) => {
       const creds = await login({ openBrowser: () => false, apiBase: base, out: () => {}, sleep: async () => {} });
-      assert.equal(creds.default_model, "fast/cheap");
+      assert.equal(creds.default_model, "slow/expensive");
       assert.deepEqual(Object.keys(creds).sort(), ["api_base", "api_key", "catalog", "default_model", "email"]);
     }
   );

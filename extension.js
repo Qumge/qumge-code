@@ -58,8 +58,10 @@ export default function (pi) {
       openAICompletions(model, context, { ...options, fetch: qumgeFetch(options?.fetch) })
   });
 
-  pi.registerCommand("models", {
-    description: "Qumge coding models and prices",
+  // /prices, not /models: Pi's own /model sits one letter away and does
+  // something else (switches the model).
+  pi.registerCommand("prices", {
+    description: "Live prices of the Qumge coding models",
     handler: async (_args, ctx) => {
       const client = sessionClient(base);
       if (!client) return say(ctx, "No Qumge key in this session — run qumge login.");
