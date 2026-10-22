@@ -63,9 +63,24 @@ test("loads the catalog from QUMGE_MODELS_FILE when set", () => {
   assert.deepEqual(pi.calls.providers[0].config.models.map((m) => m.id), ["test/model"]);
 });
 
+test("adds /models and /balance without shadowing Pi's commands", () => {
+  const pi = fakePi();
+  extension(pi);
+  assert.deepEqual(pi.calls.commands.map((c) => c.name).sort(), ["balance", "models"]);
+});
+
+test("an in-session command without a key points at qmg login", async () => {
+  delete process.env.QUMGE_API_KEY;
+  const pi = fakePi();
+  extension(pi);
+  const balance = pi.calls.commands.find((c) => c.name === "balance");
+  const notices = [];
+  await balance.options.handler("", { hasUI: true, ui: { notify: (message) => notices.push(message) } });
+  assert.match(notices.join("\n"), /qmg login/);
+});
+
 // 启动时一次 fetch 就等于把目录下载摆在第一个 token 前面。
-test("does no network while loading", () => {
-  const original = globalThis.fetch;
+test("does no network while loading", () => {  const original = globalThis.fetch;
   let fetches = 0;
   globalThis.fetch = () => {
     fetches++;

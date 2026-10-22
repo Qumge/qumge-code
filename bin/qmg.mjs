@@ -75,6 +75,25 @@ if (!creds) {
   process.exit(1);
 }
 
+if (command === "balance" || command === "models") {
+  const [{ apiClient }, { formatBalance, formatModels }] = await Promise.all([
+    import("../lib/api.mjs"),
+    import("../lib/format.mjs")
+  ]);
+  const client = apiClient({ apiBase: creds.api_base, apiKey: creds.api_key });
+  try {
+    if (command === "balance") {
+      console.log(formatBalance(await client.balance()).join("\n"));
+    } else {
+      console.log(formatModels((await client.models("coding")).data).join("\n"));
+    }
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+  process.exit(0);
+}
+
 const { args, env } = planInvocation(argv, { creds, pkgRoot });
 
 let cli;
