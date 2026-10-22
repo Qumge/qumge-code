@@ -33,6 +33,7 @@
     "NOTICE"
   ],
   "scripts": {
-    "test": "node --test \"test/*.test.mjs\""
+    "test": "node --test \"test/*.test.mjs\"",
+    "models": "node scripts/generate-models.mjs"
   }
 }
