@@ -34,6 +34,7 @@
   ],
   "scripts": {
     "test": "node --test \"test/*.test.mjs\"",
-    "models": "node scripts/generate-models.mjs"
+    "models": "node scripts/generate-models.mjs",
+    "prepublishOnly": "node scripts/check-catalog.mjs"
   }
 }
