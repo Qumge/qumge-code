@@ -10,3 +10,5 @@ out/
 .DS_Store
 *.log
 qumge-code-*.tgz
+
+.worktrees/
